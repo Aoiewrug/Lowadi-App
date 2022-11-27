@@ -19,7 +19,7 @@ var TestHorse = []string{
 	"https://www.lowadi.com/elevage/chevaux/cheval?id=67016167",
 }
 
-const goroutines = 20 // Total number of threads to use, excluding the main() thread
+const goroutines = 12 // Total number of threads to use, excluding the main() thread
 
 type chanStruct struct {
 	browser *rod.Browser

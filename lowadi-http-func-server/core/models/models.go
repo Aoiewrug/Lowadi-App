@@ -3,12 +3,28 @@ package models
 import (
 	"time"
 
+	"github.com/go-rod/rod"
 	"gorm.io/gorm"
 )
+
+type ChanStruct struct {
+	Account         *Account     // User acc from DB
+	Browser         *rod.Browser // Logg-in'ed user in the browser. Should we use this?
+	Page            *rod.Page
+	HorseArrayLinks []string // Horse links to be processed
+	SingleHorseLink string   //
+	Counter         int      // Just a counter
+	Error           string
+}
 
 type OrkiParameters struct {
 	Account *Account
 	Links   []string
+}
+
+// Stores horses IDs to run em async
+type OrkiHorses struct {
+	IDs []string
 }
 
 // Game account info
@@ -33,7 +49,14 @@ type Account struct {
 	Timer            int32          `json:"timer" gorm:"column:timer"`                     // Used to increase AccEnds time
 	CostPerDay       int32          `json:"cost_per_day" gorm:"column:cost_per_day"`       // How much $ per day does 1 acc costs
 	GameWebside      string         `json:"game_website" gorm:"column:game_website"`       // International users use not lowadi.com, nl.horse.com etc.
-	LoggedIn         int            `json:"logged_in" gorm:"column:logged_in"`             // Status: 1 - The bot is running, 2 - User can enter
+
+	// Status: 1 - User can enter ,
+	// 2 - The bot is in Update KCK section,
+	// 3 - The bot is in Update Competition section,
+	// 4 - The bot is in Orki Competition section,
+	// X - Other status codes...
+	LoggedIn int    `json:"logged_in" gorm:"column:logged_in"`
+	ErrorLog string `json:"error_log" gorm:"column:error_log"`
 
 	// Game accounts start up settings. Which modules will run?
 	// 1 = true, 2 = false
@@ -45,6 +68,7 @@ type Account struct {
 	// 1 = true, 2 = false
 	StableName       string `json:"stable_name" gorm:"column:stable_name"`             // Using this to run orki in this KCK
 	StableLink       string `json:"stable_link" gorm:"column:stable_link"`             //
+	MaxAge           string `json:"max_age" gorm:"column:max_age"`                     // Difines the peak year of the running horses (selecting it via filter)
 	AdvantagesFuraj  int    `json:"advantages_furaj" gorm:"column:advantages_furaj"`   // 1=use this check-mark. 2=don't
 	AdvantagesOvec   int    `json:"advantages_ovec" gorm:"column:advantages_ovec"`     // 1=use this check-mark. 2=don't
 	AdvantagesCarrot int    `json:"advantages_carrot" gorm:"column:advantages_carrot"` // 1=use this check-mark. 2=don't

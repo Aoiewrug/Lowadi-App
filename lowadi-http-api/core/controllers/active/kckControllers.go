@@ -11,14 +11,40 @@ import (
 
 // Auto collected after the test run
 // Get all accs with specific user
-func GetKCK(c *gin.Context) {
+func GetKCKs(c *gin.Context) {
 	// Show lowadi account
 	body := &[]models.KCK{}
 
 	// SELECT * FROM `accounts` WHERE 'user_id' = 1
 	initializers.DB.Where("user_id = ?", fmt.Sprint(GetUserID(c))).Find(&body)
-	//initializers.DB.Find(&body)
+
 	c.JSON(200, &body)
+}
+
+// Get all KCKs of the exact use(r/rs)
+func GetKCK(c *gin.Context) {
+	// get login and user id
+	body := &models.StartupAccount{}
+
+	if c.BindJSON(&body) != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "Failed to read account update body",
+			"payload": "Please check syntax",
+		})
+
+		return
+	}
+
+	res := &[]models.KCK{}
+	// Find KCK link/id in db
+	initializers.DB.
+		Where("user_id = ?", fmt.Sprint(GetUserID(c))).
+		Where("login = ?", body.Logins).
+		Find(&res)
+
+	fmt.Println(res)
+
+	c.JSON(200, &res)
 }
 
 // Hard delete of an account
@@ -75,6 +101,7 @@ func SetKCKtoGameAccount(c *gin.Context) {
 		Updates(models.Account{
 			StableName:       account.StableName,
 			StableLink:       kck.StableLink,
+			MaxAge:           account.MaxAge,
 			AdvantagesFuraj:  account.AdvantagesFuraj,
 			AdvantagesOvec:   account.AdvantagesOvec,
 			AdvantagesCarrot: account.AdvantagesCarrot,

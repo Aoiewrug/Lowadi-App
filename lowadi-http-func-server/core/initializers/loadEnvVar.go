@@ -8,7 +8,7 @@ import (
 )
 
 func LoadEnvVar() {
-	err := godotenv.Load(filepath.Join("C:/Users/3/Desktop/oldLowadi/Lowadi-App/lowadi-http-api/", ".env"))
+	err := godotenv.Load(filepath.Join("C:/Users/3/Desktop/oldLowadi/Lowadi-App/lowadi-http-func-server/", ".env"))
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}

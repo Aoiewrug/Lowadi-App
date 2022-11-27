@@ -7,28 +7,19 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Aoiewrug/Lowadi-App/lowadi-http-api/core/controllers/helpers/competitions"
-	"github.com/Aoiewrug/Lowadi-App/lowadi-http-api/core/controllers/helpers/orki"
-	"github.com/Aoiewrug/Lowadi-App/lowadi-http-api/core/controllers/helpers/updatekck"
-	"github.com/Aoiewrug/Lowadi-App/lowadi-http-api/core/models"
+	"github.com/Aoiewrug/Lowadi-App/lowadi-http-func-server/core/helpers/competitions"
+	"github.com/Aoiewrug/Lowadi-App/lowadi-http-func-server/core/helpers/dbupdate"
+	"github.com/Aoiewrug/Lowadi-App/lowadi-http-func-server/core/helpers/orki"
+	"github.com/Aoiewrug/Lowadi-App/lowadi-http-func-server/core/helpers/updatekck"
+	"github.com/Aoiewrug/Lowadi-App/lowadi-http-func-server/core/models"
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/input"
 	"github.com/go-rod/rod/lib/launcher"
 )
 
-// Static IP! - For Kaworu
-const IPandPORT_2 = "86.111.229.34:5432"
-const ProxyLogin_2 = "ikolomeytsev"
-const ProxyPass_2 = "q0kkb04j"
-
-// Static IP! - For Dirikey
-const IPandPORT_3 = "37.143.62.3:5432" // old and slow. Good german - 37.143.62.3
-const ProxyLogin_3 = "ikolomeytsev"
-const ProxyPass_3 = "q0kkb04j"
-
 // Log IN
-func GameLogIn(account *models.Account) (statusCode int, statusString string) {
-	//
+func GameLogIn(account *models.Account) (statusCode int, chanStruct models.ChanStruct) {
+	//handling
 	// forming proxy like: 198.165.0.23:5432
 	proxyString := account.ProxyIP + ":" + strconv.Itoa(account.ProxyPort)
 	fmt.Println(proxyString)
@@ -41,7 +32,7 @@ func GameLogIn(account *models.Account) (statusCode int, statusString string) {
 	// Using incognito sessions to isolate it better
 	browser := rod.New().ControlURL(url).MustConnect().MustIncognito()
 
-	defer browser.MustClose()
+	// defer browser.MustClose()
 
 	// Proxy auth
 	//Async version without err handling
@@ -58,7 +49,11 @@ func GameLogIn(account *models.Account) (statusCode int, statusString string) {
 	})
 	if errors.Is(rejectCookieTimeout, context.DeadlineExceeded) {
 		fmt.Println("|Reject cookies| button timeout error. Proxy or website layout error")
-		return 2, fmt.Sprintf("User: %v - Can't load the website. Bad proxy or Game server is down", account.UserID)
+		return 2, models.ChanStruct{
+			Account: account,
+			Error:   fmt.Sprintf("User: %v - Can't load the website. Bad proxy or Game server is down", account.UserID),
+		}
+
 	} else {
 		// Trying to Log-in
 		Page.MustElementR("button",
@@ -66,6 +61,7 @@ func GameLogIn(account *models.Account) (statusCode int, statusString string) {
 		).MustClick()
 
 		time.Sleep(4 * time.Second)
+
 		Page.MustElementR("#header-login-label",
 			"Войти", // - RUSSIAN WORDS!
 		).MustClick()
@@ -81,8 +77,11 @@ func GameLogIn(account *models.Account) (statusCode int, statusString string) {
 		})
 		if errors.Is(loginTimeout, context.DeadlineExceeded) {
 			fmt.Sprintf("User: %v, Account: %v - Failed to Log-in", account.UserID, account.Login)
-			time.Sleep(10 * time.Second)
-			return 2, fmt.Sprintf("User: %v, Account: %v- Failed to Log-in", account.UserID, account.Login)
+			//time.Sleep(10 * time.Second)
+			return 2, models.ChanStruct{
+				Account: account,
+				Error:   fmt.Sprintf("User: %v, Account: %v- Failed to Log-in", account.UserID, account.Login),
+			}
 		} else {
 			//
 			// Successfully log-in
@@ -91,13 +90,21 @@ func GameLogIn(account *models.Account) (statusCode int, statusString string) {
 			// Extract KCK names and links to DB
 			// Should be enabled by defauldt after creating an account
 			if account.UpdateKCK == 1 {
+				// add DB status "Updating KCKs" - 2
+				dbupdate.UpdateRunningAccountStatus(account, 2)
+
 				updatekck.UpdateKCK(Page, account)
-				// add return values?
+
+				// add return values to DB?
 			}
 
 			if account.Competitions == 1 {
+				// add DB status "Running competitions" - 3
+				dbupdate.UpdateRunningAccountStatus(account, 3)
+
 				competitions.StartCompetitionsTest(Page, account)
-				// add return values?
+
+				// add return values to DB?
 			}
 
 			//
@@ -106,18 +113,51 @@ func GameLogIn(account *models.Account) (statusCode int, statusString string) {
 
 			// Run orki
 			if account.RunOrki == 1 {
-				// HTTP CALL on another server
+				// add DB status "Running orki" - 4
+				dbupdate.UpdateRunningAccountStatus(account, 4)
+
+				horseLinks, err := orki.OrkiPasrePages(Page, account)
+
+				if err != nil {
+					fmt.Println("can't get page length : ", err)
+					return 2, models.ChanStruct{
+						Account: account,
+						Error:   fmt.Sprintf("Login: %v - can't transfer orki array", account.Login),
+					}
+				}
+
+				x := fmt.Sprintf("Login: %v - Transferring Orki array", account.Login)
+				fmt.Println(x)
+
+				return 1,
+					models.ChanStruct{
+						Account:         account,
+						Browser:         browser,
+						HorseArrayLinks: horseLinks.IDs,
+						Error:           "",
+					}
 
 				//StartOrkiLinear(Page, account) // Linear (halted)
 				//orki.TestStartOrkiAsync(browser, account) // Async test
 				//orki.StartOrkiAsync(browser, Page, account) // Async production
-				orki.TestCallFuncServer(browser, Page, account)
+				//orki.TestCallFuncServer(browser, Page, account)
 
-				// add return values?
+				// add return values to DB?
 			}
 
+			// add DB status "User can log-in the account"
+			dbupdate.UpdateRunningAccountStatus(account, 1)
 			//time.Sleep(10000 * time.Second)
-			return 1, fmt.Sprintf("User: %v - I've Logged-in successfully", account.UserID)
+
+			y := fmt.Sprintf("User: %v - I've Logged-in successfully", account.Login)
+			fmt.Println(y)
+
+			Page.MustClose()
+
+			return 3, models.ChanStruct{
+				Account: account,
+				Error:   "",
+			}
 		}
 	}
 }

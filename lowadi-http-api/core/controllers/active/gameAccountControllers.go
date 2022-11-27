@@ -26,13 +26,14 @@ func AddAcc(c *gin.Context) {
 	// Account settings
 	body.UserID = GetUserID(c)                    // Bind to a specific user
 	body.AccCreated = time.Now()                  // Set the creation time
-	body.AccEnds = time.Now().Add(time.Hour * 24) // Add trial period?
+	body.AccEnds = time.Now().Add(time.Hour * 24) // Add trial period? (24 hours default)
 	body.AccUpdated = time.Now()                  // Last user $ activity
 	body.AlreadyExpired = 1                       // 2=expired, 1=active                 (Manual turn off/on)
 	body.Active = 1                               // 2=expired, 1=active add 1 day trial (Auto turn off (balance exceeded))
 	body.OverDueHours = 0                         //
-	body.CostPerDay = 5                           // How many rub per day we want
+	body.CostPerDay = 5                           // How many rub per day we want per account
 	body.GameWebside = "https://www.lowadi.com/"  // Default website
+	body.LoggedIn = 1                             // Status: 1 - User can enter, 2 - The bot is running, 3 - The bot is running...
 
 	// game settings
 	body.UpdateKCK = 1            // 2=no, 1=yes Update stables list?
@@ -42,6 +43,7 @@ func AddAcc(c *gin.Context) {
 	body.BirthHorsesName = "male" // default horse name
 
 	// KCK sing-in settings
+	body.MaxAge = "30"        // Difines the peak year of the running horses (selecting it via filter)
 	body.MaxDailyPrice = 30   // Max daily price for KCK sing-in
 	body.AdvantagesFuraj = 2  // 1=use this check-mark. 2=don't
 	body.AdvantagesOvec = 2   // 1=use this check-mark. 2=don't

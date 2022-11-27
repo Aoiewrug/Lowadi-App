@@ -49,6 +49,7 @@ func main() {
 	kckRoutes := r.Group("/kck", middleware.ReqireAuth)
 	{
 		// Post is done automatically UpdateKCK function
+		kckRoutes.GET("/gets", active.GetKCKs)                 // http://127.0.0.1:8001/kck/gets
 		kckRoutes.GET("/get", active.GetKCK)                   // http://127.0.0.1:8001/kck/get
 		kckRoutes.PATCH("/update", active.SetKCKtoGameAccount) // http://127.0.0.1:8001/kck/update
 		kckRoutes.DELETE("/delete", active.DeleteKCK)          // http://127.0.0.1:8001/kck/delete
@@ -67,7 +68,7 @@ func main() {
 	// Game functionality
 	gameRoutes := r.Group("/game", middleware.ReqireAuth)
 	{
-		gameRoutes.GET("/start", active.GameEnterPoint) // http://127.0.0.1:8001/game/test
+		gameRoutes.GET("/start", active.GameEnterPoint) // http://127.0.0.1:8001/game/start
 
 	}
 

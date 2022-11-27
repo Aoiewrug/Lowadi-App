@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Aoiewrug/Lowadi-App/lowadi-http-api/core/models"
+	"github.com/Aoiewrug/Lowadi-App/lowadi-http-func-server/core/models"
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/input"
 )
@@ -26,18 +26,67 @@ func OrkiPasrePages(page *rod.Page, account *models.Account) (horseLinks models.
 		return links, errors.New("can't open correct KCK page to parse page length")
 	}
 
-	// Check how may pages does KCK have
-	pageSection := page.MustElement("#horseList > div > div.module-before > div:nth-child(2) > div > ul").MustWaitLoad()
-	pages := pageSection.MustElements("li")
-	fmt.Println("How may mages in this KCK?: ", len(pages))
+	// Filter horse age
+	/*
+		click #linkBlocRecherche - Open filter menu
+		wait load or 1 sec
+		click!!!  #horseSearchSearch-line > table > tbody > tr:nth-child(1) > td:nth-child(6) > div - to swap from ">" to "<"
+		click #horseSearchAge - select age
+		press delete and backspase
+		enter account.MaxYear value
+		press #horseSearchSubmit - submit button
+		wait page load / wait 2-3 sec
+	*/
 
-	links, err = OrkiPasreHorsesLinks(page, len(pages))
-	if err != nil {
-		return links, err
+	BTN0 := rod.Try(func() {
+		page.Timeout(10000 * time.Millisecond).MustElement("#linkBlocRecherche").MustClick().MustWaitLoad()
+	})
+	if errors.Is(BTN0, context.DeadlineExceeded) {
+		return links, errors.New("can't click open filter button")
+	} else {
+		// just a regular err consuming
+		BTN99 := rod.Try(func() {
+			page.Timeout(10000 * time.Millisecond).MustElement("#horseSearchSearch-line > table > tbody > tr:nth-child(1) > td:nth-child(6) > div").MustClick()
+			page.Timeout(10000 * time.Millisecond).MustElement("#horseSearchAge").MustClick()
+			page.Timeout(10000 * time.Millisecond).KeyActions().Press(input.ControlLeft).Type(input.KeyA).MustDo()
+			page.Timeout(10000 * time.Millisecond).MustElement("#horseSearchAge").MustInput(account.MaxAge)
+			page.Timeout(10000 * time.Millisecond).MustElement("#horseSearchSubmit").MustClick().MustWaitLoad()
+		})
+		if errors.Is(BTN99, context.DeadlineExceeded) {
+			return links, errors.New("found the filter button, but had an unexpected error")
+		}
+		time.Sleep(Timeout)
 	}
 
-	return links, nil
+	// Check how may pages does KCK have
+	BTN1 := rod.Try(func() {
+		page.Timeout(4000 * time.Millisecond).MustElement("#horseList > div > div.module-before > div:nth-child(2) > div > ul").MustWaitLoad()
+	})
+	if errors.Is(BTN1, context.DeadlineExceeded) {
+		// If there are no pages - parse as it is
+		links, err = OrkiPasreHorsesLinksOnePage(page)
+		if err != nil {
+			return links, err
+		}
 
+		return links, nil
+
+	} else {
+		// If there are multiple pages pages
+		pageSection := page.MustElement("#horseList > div > div.module-before > div:nth-child(2) > div > ul").MustWaitLoad()
+		pages := pageSection.MustElements("li")
+		//fmt.Println("How may mages in this KCK?: ", len(pages))
+
+		links, err = OrkiPasreHorsesLinksMultiplePages(page, len(pages))
+		if err != nil {
+			return links, err
+		}
+
+		return links, nil
+
+	}
+
+	// Pages struct:
 	// #horseList > div > div.module-before > div:nth-child(2) > div > ul > li.page.selected - 1st page (li:nth-child(2))
 	// #horseList > div > div.module-before > div:nth-child(2) > div > ul > li:nth-child(3) - 2nd page
 	// #horseList > div > div.module-before > div:nth-child(2) > div > ul > li:nth-child(4) - 3nd page
@@ -47,13 +96,41 @@ func OrkiPasrePages(page *rod.Page, account *models.Account) (horseLinks models.
 }
 
 // Get all horses links ADD ERROR SECTION
-func OrkiPasreHorsesLinks(page *rod.Page, lenPages int) (horseLinks models.OrkiHorses, err error) {
+func OrkiPasreHorsesLinksOnePage(page *rod.Page) (horseLinks models.OrkiHorses, err error) {
+	var array models.OrkiHorses
+	// Iterating over all pages. Starting from the end
+
+	time.Sleep(1000 * time.Millisecond)
+
+	// Parse horse IDs from current page:
+	horseGrid := page.MustElement("#horseList > div > div.damier-table.grid-table.width-100")
+	horses := horseGrid.MustElements("li.damier-horsename.nowrap")
+	//fmt.Println("How many horses on this page?: ", len(horses))
+
+	// Loop over horses on this page
+	for _, row := range horses {
+		horses := row.MustElement("a")
+
+		// Extract horse's direct link
+		link := fmt.Sprintf("%s", horses.MustProperty("href"))
+		array.IDs = append(array.IDs, link)
+
+	}
+
+	////fmt.Println(array)
+
+	return array, nil
+
+}
+
+// Get all horses links ADD ERROR SECTION
+func OrkiPasreHorsesLinksMultiplePages(page *rod.Page, lenPages int) (horseLinks models.OrkiHorses, err error) {
 	var array models.OrkiHorses
 	// Iterating over all pages. Starting from the end
 	for i := lenPages; i > 1; i-- {
 		time.Sleep(1000 * time.Millisecond)
 
-		fmt.Println("Current page: ", i)
+		//fmt.Println("Current page: ", i)
 
 		openThisPage := fmt.Sprintf("#horseList > div > div.module-before > div:nth-child(2) > div > ul > li:nth-child(%v)", i)
 		BTN := rod.Try(func() {
@@ -68,7 +145,7 @@ func OrkiPasreHorsesLinks(page *rod.Page, lenPages int) (horseLinks models.OrkiH
 		// Parse horse IDs from current page:
 		horseGrid := page.MustElement("#horseList > div > div.damier-table.grid-table.width-100")
 		horses := horseGrid.MustElements("li.damier-horsename.nowrap")
-		fmt.Println("How many horses on this page?: ", len(horses))
+		//fmt.Println("How many horses on this page?: ", len(horses))
 
 		// Loop over horses on this page
 		for _, row := range horses {
@@ -81,7 +158,7 @@ func OrkiPasreHorsesLinks(page *rod.Page, lenPages int) (horseLinks models.OrkiH
 		}
 	}
 
-	//fmt.Println(array)
+	////fmt.Println(array)
 
 	return array, nil
 
@@ -122,7 +199,7 @@ func RunBabyHorse(page *rod.Page) (s string, err error) {
 	return "done with this bb horse", nil
 }
 
-func RunOldHorseWithKCK(page *rod.Page, chanStruct chanStruct, currentMoney int) (s string, err error) {
+func RunOldHorseWithKCK(page *rod.Page, chanStruct models.ChanStruct, currentMoney int) (s string, err error) {
 	page = page.MustWaitLoad()
 	time.Sleep(Timeout)
 
@@ -132,7 +209,7 @@ func RunOldHorseWithKCK(page *rod.Page, chanStruct chanStruct, currentMoney int)
 
 	})
 	if errors.Is(isMissionActive, context.DeadlineExceeded) {
-		fmt.Println("No mission for this horse")
+		//fmt.Println("No mission for this horse")
 		// Parse optimum KORM value
 
 	} else {
@@ -149,16 +226,16 @@ func RunOldHorseWithKCK(page *rod.Page, chanStruct chanStruct, currentMoney int)
 				page.Timeout(Timeout).MustElement("#fieldError-manqueEnergie")
 			})
 			if errors.Is(BTN2, context.DeadlineExceeded) {
-				fmt.Println("We have some energy after processing the mission")
+				//fmt.Println("We have some energy after processing the mission")
 			} else {
-				fmt.Println("no energy for mission error")
+				//fmt.Println("no energy for mission issue")
 			}
 		}
 
 	}
 
 	// Propagate horse
-	if chanStruct.account.BirthHorses == 1 {
+	if chanStruct.Account.BirthHorses == 1 {
 		err := Propagate(page, chanStruct, currentMoney)
 		if err != nil {
 			return "", err
@@ -184,7 +261,7 @@ func RunOldHorseWithKCK(page *rod.Page, chanStruct chanStruct, currentMoney int)
 	})
 	if errors.Is(isSecondFeedBar, context.DeadlineExceeded) {
 		// one feed bar horses
-		err := FeedOneBarHorse(page, chanStruct.account)
+		err := FeedOneBarHorse(page, chanStruct.Account)
 
 		time.Sleep(Timeout)
 
@@ -198,7 +275,7 @@ func RunOldHorseWithKCK(page *rod.Page, chanStruct chanStruct, currentMoney int)
 		}
 	} else {
 		// two feed bars horses
-		er := FeedTwoBarHorse(page, chanStruct.account)
+		er := FeedTwoBarHorse(page, chanStruct.Account)
 
 		time.Sleep(Timeout)
 
@@ -278,7 +355,7 @@ func RunOldHorseWithKCK(page *rod.Page, chanStruct chanStruct, currentMoney int)
 
 }
 
-func Propagate(page *rod.Page, chanStruct chanStruct, currentMoney int) (err error) {
+func Propagate(page *rod.Page, chanStruct models.ChanStruct, currentMoney int) (err error) {
 	page = page.MustWaitLoad()
 
 	// Try male selector 1st
@@ -289,14 +366,14 @@ func Propagate(page *rod.Page, chanStruct chanStruct, currentMoney int) (err err
 	})
 	if errors.Is(BTN1, context.DeadlineExceeded) {
 		// Try female selector than
-		fmt.Println("no male propagate selector")
+		//fmt.Println("no male propagate selector")
 		BTN2 := rod.Try(func() {
 			page.Timeout(HorseDetectionTimeout).MustElementR("#reproduction-tab-0 > table > tbody > tr > td.last",
 				"Случить кобылу", // - RUSSIAN WORDS!
 			)
 		})
 		if errors.Is(BTN2, context.DeadlineExceeded) {
-			fmt.Println("no both propagate selectors")
+			//fmt.Println("no both propagate selectors")
 			return nil
 		} else {
 			// Proceed with female babymaking :D
@@ -344,12 +421,12 @@ func Propagate(page *rod.Page, chanStruct chanStruct, currentMoney int) (err err
 
 				page.MustWaitLoad()
 
-				fmt.Println("successfull propagation female")
+				//fmt.Println("successfull propagation female")
 
 				return nil
 
 			} else {
-				fmt.Println("no money for female propagation")
+				//fmt.Println("no money for female propagation")
 				return nil
 
 			}
@@ -363,14 +440,14 @@ func Propagate(page *rod.Page, chanStruct chanStruct, currentMoney int) (err err
 			page.Timeout(CancelationTimeout).MustElement("#formMalePublicTypePublic").MustClick() // click "Open world" filter
 		})
 		if errors.Is(BTN1, context.DeadlineExceeded) {
-			fmt.Println("can't open propagation male section") // This could be okay cuz there are only 300 operations per day
+			//fmt.Println("can't open propagation male section") // This could be okay cuz there are only 300 operations per day
 			return nil
 		}
 
-		BTN2 := rod.Try(func() {
+		BTN0 := rod.Try(func() {
 			page.Timeout(CancelationTimeout).MustElement("#formMalePublicPrice").MustClick() // click "select price" button
 		})
-		if errors.Is(BTN2, context.DeadlineExceeded) {
+		if errors.Is(BTN0, context.DeadlineExceeded) {
 			return errors.New("error can't click price for propagation male")
 		}
 
@@ -394,12 +471,12 @@ func Propagate(page *rod.Page, chanStruct chanStruct, currentMoney int) (err err
 
 		time.Sleep(Timeout)
 
-		fmt.Println("successfull propagation male")
+		//fmt.Println("successfull propagation male")
 
 		return nil
 		//}
 
-		// fmt.Println("done with male propagations today")
+		// //fmt.Println("done with male propagations today")
 
 		// return nil
 
@@ -416,7 +493,7 @@ func NewbornHorse(page *rod.Page, account *models.Account) (err error) {
 	}
 
 	BTN2 := rod.Try(func() {
-		page.Timeout(CancelationTimeout).MustElement("#admin_user_password").MustInput(account.BirthHorsesName) // Enter new horse name
+		page.Timeout(CancelationTimeout).MustElement("#poulain-1").MustInput(account.BirthHorsesName) // Enter new horse name
 	})
 	if errors.Is(BTN2, context.DeadlineExceeded) {
 		return errors.New("can't enter newborn horse name")
@@ -524,7 +601,7 @@ func KCKsingin(page *rod.Page, account *models.Account) (pg *rod.Page, err error
 		return page, errors.New("can't find lowcoster KCK sing-in price button")
 	}
 	mediumPrice := page.MustElement("#table-0 > tbody > tr:nth-child(1) > td:nth-child(8)").MustText()
-	fmt.Println("raw price per 3 days is ", mediumPrice)
+	//fmt.Println("raw price per 3 days is ", mediumPrice)
 	mediumPrice = strings.ReplaceAll(mediumPrice, " ", "") //trim spaces
 
 	intConv, err := strconv.Atoi(mediumPrice) // conver to int
@@ -534,7 +611,7 @@ func KCKsingin(page *rod.Page, account *models.Account) (pg *rod.Page, err error
 	}
 
 	mediumPriceInt := intConv / 3 // get price per 1 day
-	fmt.Println("current price per 1 day is", mediumPriceInt)
+	//fmt.Println("current price per 1 day is", mediumPriceInt)
 	// raw price per 3 days is  180
 	//current price per 1 day is 0
 
@@ -546,7 +623,7 @@ func KCKsingin(page *rod.Page, account *models.Account) (pg *rod.Page, err error
 		if errors.Is(BTNcofirm, context.DeadlineExceeded) {
 			return page, errors.New("can't press lowest 3day price button")
 		}
-		fmt.Println("current price per 1 day is Okay", mediumPriceInt)
+		//fmt.Println("current price per 1 day is Okay", mediumPriceInt)
 		time.Sleep(Timeout)
 
 		return page, nil
@@ -559,7 +636,7 @@ func KCKsingin(page *rod.Page, account *models.Account) (pg *rod.Page, err error
 			return page, errors.New("can't press reject kck sing-in button")
 		}
 
-		fmt.Println("current price per 1 day is too High", mediumPriceInt)
+		//fmt.Println("current price per 1 day is too High", mediumPriceInt)
 		time.Sleep(Timeout)
 
 		return page, nil
@@ -609,7 +686,7 @@ func PressFinishFeedButton(page *rod.Page) (s string, err error) {
 
 	})
 	if errors.Is(isFeedError, context.DeadlineExceeded) {
-		fmt.Println("success after feeding")
+		//fmt.Println("success after feeding")
 	} else {
 
 		// Checking if the horse if too fat rn
@@ -673,7 +750,7 @@ func FeedStatusArraySplit(s string) int {
 	currentFeedValue, err := strconv.Atoi(y)
 
 	if err != nil {
-		fmt.Println("Wrong current feed status selector")
+		//fmt.Println("Wrong current feed status selector")
 	}
 
 	return currentFeedValue
@@ -696,7 +773,7 @@ func CurrentEquValue(s string) int {
 	currentEqu, err := strconv.Atoi(y)
 
 	if err != nil {
-		fmt.Println("Wrong Equ selector")
+		//fmt.Println("Wrong Equ selector")
 		// if credit
 		return 0
 	}
