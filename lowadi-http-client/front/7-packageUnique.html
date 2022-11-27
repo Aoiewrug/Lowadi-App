@@ -1,0 +1,49 @@
+{{ define "packageUnique"}}
+
+{{ template "header" }}
+<html>
+    <br> 
+<ul style="text-align: left"> Finds unique IPs:
+  <li style="text-align: left">Static packages</li> 
+  <li style="text-align: left">BC packages (Only manual pool. Don't forget to compare with purpose ;) )</li> 
+  <li style="text-align: left">Purposes (Extract IP pool, not user's IPs)</li>
+</ul>
+  <!-- redirect to /info/compare page-->
+<form action="/info/unique" style="text-align: center" >
+    <label for="packages">Enter links (use ENTER as separator)</label><br>
+    <textarea style="width: 500px; height:100px; background-color: #4c4c4c; color: #FFFFFF;" type="text" id="packages" name="packages" value=""></textarea><br>
+    <input type="submit" value="Submit">  
+</form>
+    <body style="text-align: center">
+      <center>
+        <br>
+          <textarea style="width: 160px; height:200px; background-color: #4c4c4c; color: #FFFFFF;" id="textbox">{{ range $i := .}}{{$i}}&#10;{{end}}</textarea><br />
+          <button onclick="copyText()">Copy</button>
+          <br />
+      </center>
+    
+      <script>
+          function copyText() {
+        
+              /* Select text area by id*/
+              var Text = document.getElementById("textbox");
+    
+              /* Select the text inside text area. */
+              Text.select();
+    
+              /* Copy selected text into clipboard */
+              navigator.clipboard.writeText(Text.value);
+          }
+      </script>
+  </body>     
+<!--
+</form>
+    <br>
+    <br>
+    <div>The list of all dupes:</div>
+    <br>
+    {{ range $i := .}} {{$i}}<br/>{{end}}
+-->
+</html>
+{{ template "footer" }}    
+{{ end }}

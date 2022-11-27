@@ -1,0 +1,37 @@
+{{ define "cryptoPayments"}}
+
+{{ template "header" }}
+<html>
+  <!-- redirect to /auth.login page -->
+  <div>Updates at every 10 seconds</div><br>
+  <br>
+  <div>The list of all cryptopayments:</div><br>
+
+
+  <table >
+    <tr>
+      <th>Email</th>
+      <th>Coin</th>
+      <th>AlreadyExpired</th>
+      <th>OverDueHours</th>
+      <th>Balance</th>
+      
+    </tr>
+  {{ range . }}
+
+    <tr>
+      <td>{{ .Email }}</td>
+      <td>{{ .Coin }}</td>
+      <td>{{ .AlreadyExpired }}</td>
+      <td>{{ .OverDueHours }}</td>
+      <td>{{ .Balance }}</td>
+      
+    </tr>
+ 
+  {{ end }}
+</table>
+
+
+</html>
+{{ template "footer" }}    
+{{ end }}

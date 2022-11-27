@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+
+<!-- <div>hello, fucker</div> 
+     https://stackoverflow.com/questions/70918048/how-can-i-get-data-from-dynamically-created-input-field-using-vanilla-javascript 
+
+
+
+<script type="text/javascript" src="app.js">
+</script>
+
+
+<script>
+
+    // Utility functions:
+
+const EL = (sel, par) => (par||document).querySelector(sel);
+const ELS = (sel, par) => (par||document).querySelectorAll(sel);
+const ELNew = (tag, prop) => Object.assign(document.createElement(tag), prop)
+
+// App: Form: Add education:
+
+const EL_add = EL(".add-button");
+const EL_get = EL(".get-button");
+const EL_fields = EL(".education-fields");
+
+const addField = (name) => {
+  const EL_field = ELNew("div", {
+    className: "education-input-field row mb-2",
+    innerHTML: `<div class="col-md-5">
+      <input value="${name || ""}" type="text" class="form-control degree-name" placeholder="Degree name"/>
+    </div>`
+  });
+  EL_fields.append(EL_field);
+}
+
+const getFieldsVaules = () => {
+  return [...ELS(".degree-name", EL_fields)].map(el => el.value);
+};
+
+// Events:
+
+EL_add.addEventListener("click", () => {
+  // Add a new field to DOM
+  addField();
+});
+
+EL_get.addEventListener("click", () => {
+  const fieldsValues = getFieldsVaules(); // Get all fields values into array
+  console.log(fieldsValues);
+  // TODO: do something with it
+});
+
+// Example: prepopulate with existing fields:
+
+const existingFields = ["JavaScript Course", "HTML course"];
+existingFields.forEach(addField);  // That simple!
+</script>
+-->
+
+{{ define "test2"}}
+
+{{ template "header" }}
+<html>
+    <br> 
+<ul style="text-align: left"> Extract all IPs to one heap and print dupes:
+  <li style="text-align: left">Static packages</li> 
+  <li style="text-align: left">BC packages (only manual. Don't forget to compare with purpose ;) )</li> 
+  <li style="text-align: left">Purposes (extract IP pool, not user IPs)</li> <br>
+</ul>
+  <!-- redirect to /info/compare page-->
+<form action="/info/compare" style="text-align: center" >
+    <label for="package1">Enter main link</label><br>
+    <input style="width: 500px; background-color: #4c4c4c; color: #FFFFFF;" type="text" id="package1" name="package1" value=""><br>
+    <br>
+    <label for="package2">Enter other links (use ENTER as separator)</label><br>
+    <textarea style="width: 500px; height:150px; background-color: #4c4c4c; color: #FFFFFF;" type="text" id="package2" name="package2" value=""></textarea><br>
+    <input type="submit" value="Submit">  
+</form>
+    <body style="text-align: center">
+      <center>
+        <br>
+          <textarea style="width: 160px; height:200px; background-color: #4c4c4c; color: #FFFFFF;" id="textbox">{{ range $i := .}}{{$i}}&#10;{{end}}</textarea><br />
+          <button onclick="copyText()">Copy</button>
+          <br />
+      </center>
+    
+      <script>
+          function copyText() {
+        
+              /* Select text area by id*/
+              var Text = document.getElementById("textbox");
+    
+              /* Select the text inside text area. */
+              Text.select();
+    
+              /* Copy selected text into clipboard */
+              navigator.clipboard.writeText(Text.value);
+          }
+      </script>
+  </body>     
+<!--
+</form>
+    <br>
+    <br>
+    <div>The list of all dupes:</div>
+    <br>
+    {{ range $i := .}} {{$i}}<br/>{{end}}
+-->
+</html>
+{{ template "footer" }}    
+{{ end }}
+

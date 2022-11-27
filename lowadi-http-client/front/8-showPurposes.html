@@ -1,0 +1,18 @@
+{{ define "showPurposes"}}
+
+{{ template "header" }}
+<html>
+  <!-- redirect to /auth.login page -->
+  <div>Updates at 04:00 UTC +3</div><br>
+  <br>
+  <div>The list of all purposes:</div><br>
+
+  {{ range . }}
+
+  <div> {{ .UUID }}--{{ .PurposeName }}</div>
+
+  {{ end }}
+
+</html>
+{{ template "footer" }}    
+{{ end }}

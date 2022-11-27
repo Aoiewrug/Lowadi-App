@@ -1,0 +1,20 @@
+{{ define "showSubnet"}}
+
+{{ template "header" }}
+
+<html>
+  <!-- redirect to /auth.login page -->
+  <div>Updates at 04:00 UTC +3</div><br>
+  <br>
+  <div>The list of all subnets:</div><br>
+
+  {{ range . }}
+
+  <div style="text-align: left">{{ .UUID }}--{{ .ServerName }}--{{ .Subnet }}</div>
+
+  {{ end }}
+
+
+</html>
+{{ template "footer" }}    
+{{ end }}
