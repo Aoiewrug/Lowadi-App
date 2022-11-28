@@ -7,8 +7,9 @@ After testing this on a local market it will be transferred to the worldwide ver
 
 There are 3 modules righ now:
  - Web Client (working on that)
- + API server (done)
- + Working queue server (done)
+ - API server (done)
+ - Working queue server (done)
+ - Semaphore? (working on that)
  
  
  Will write more when done. Thanks!
