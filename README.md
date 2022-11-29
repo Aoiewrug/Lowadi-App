@@ -14,3 +14,9 @@ There are 3 modules righ now:
  
  Will write more when done. Thanks!
  
+ 
+ 
+ - Client port = localhost:80
+ - API port = localhost:8001
+ - Worker pool port = localhost:8002
+ 
