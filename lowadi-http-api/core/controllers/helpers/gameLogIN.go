@@ -18,13 +18,11 @@ import (
 
 // Static IP! - For Kaworu
 const IPandPORT_2 = "86.111.229.34:5432"
-const ProxyLogin_2 = "ikolomeytsev"
-const ProxyPass_2 = "q0kkb04j"
+
 
 // Static IP! - For Dirikey
 const IPandPORT_3 = "37.143.62.3:5432" // old and slow. Good german - 37.143.62.3
-const ProxyLogin_3 = "ikolomeytsev"
-const ProxyPass_3 = "q0kkb04j"
+
 
 // Log IN
 func GameLogIn(account *models.Account) (statusCode int, statusString string) {
